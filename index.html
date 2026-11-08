@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تحدّي عُمان الثنائي</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect width='60' height='30' fill='%23db161b'/%3E%3Crect x='15' width='45' height='10' fill='%23fff'/%3E%3Crect x='15' y='20' width='45' height='10' fill='%23008000'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#070b10; --panel:#0f1620; --panel2:#142030; --line:#223245;
+  --text:#e8eef5; --muted:#8aa0b5;
+  --red:#e0232b; --green:#1ea65a; --gold:#ffd166; --cyan:#4cc9f0; --bad:#ff5d6c;
+  --radius:16px;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: "Segoe UI", Tahoma, "Noto Sans Arabic", "Noto Naskh Arabic", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100%}
+body{overflow-x:hidden;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+/* عناصر الأرقام الثنائية تبقى من اليسار إلى اليمين دائمًا */
+.ltr{direction:ltr;unicode-bidi:isolate}
+canvas#rain{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.35;pointer-events:none}
+canvas#fx{position:fixed;inset:0;width:100%;height:100%;z-index:50;pointer-events:none}
+.app{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:0 16px 40px}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0}
+.brand{display:flex;align-items:center;gap:12px;background:none;border:0;padding:0;text-align:start}
+.brand .flag{width:60px;height:30px;border-radius:3px;overflow:hidden;display:block;flex:none;box-shadow:0 0 0 1px #ffffff33, 0 2px 10px #0008}
+.brand .flag svg{display:block;width:100%;height:100%}
+.brand b{font-size:1.15rem}
+.brand small{display:block;color:var(--muted);font-size:.72rem;font-family:var(--mono);direction:ltr;text-align:start}
+.hud{flex:1;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.85rem;white-space:nowrap}
+.pill b{color:var(--gold);font-family:var(--mono)}
+.tools button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px}
+#screen{animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+h1{font-size:clamp(1.9rem,5vw,3.2rem);line-height:1.25;margin:.2em 0}
+h1 span{background:linear-gradient(270deg,var(--red),var(--gold),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{margin:.2em 0 .4em;font-size:clamp(1.15rem,3vw,1.6rem);line-height:1.4}
+.eyebrow{font-size:.82rem;color:var(--cyan);margin:0;font-weight:700}
+.muted{color:var(--muted)}
+.hero{padding:18px 0 8px}
+.hero p{max-width:60ch;color:var(--muted);font-size:1.05rem}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));margin:20px 0}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.level-card{display:flex;flex-direction:column;gap:8px;transition:transform .2s, border-color .2s, box-shadow .2s;text-align:start}
+.level-card:hover:not(.locked){transform:translateY(-4px);border-color:var(--accent,var(--cyan));box-shadow:0 10px 30px #0008, 0 0 0 1px var(--accent,var(--cyan)) inset}
+.level-card.locked{opacity:.45;cursor:not-allowed}
+.level-card .icon{font-size:2.4rem}
+.tag{display:inline-block;font-size:.76rem;padding:3px 10px;border-radius:999px;border:1px solid var(--accent,var(--cyan));color:var(--accent,var(--cyan))}
+.stars{letter-spacing:.2em;color:var(--gold)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{background:linear-gradient(180deg,#1b2b3f,#14202f);border:1px solid var(--line);border-radius:12px;padding:11px 18px;font-weight:700;transition:transform .12s, border-color .12s, filter .12s}
+.btn:hover:not(:disabled){transform:translateY(-1px);border-color:var(--cyan)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:linear-gradient(180deg,#e8323a,#b81a21);border-color:#ff6a70;box-shadow:0 6px 20px #e0232b44}
+.btn.good{background:linear-gradient(180deg,#25b868,#168046);border-color:#53e394}
+.btn.ghost{background:transparent}
+.btn.small{padding:7px 12px;font-size:.85rem}
+.shelf{display:flex;gap:10px;flex-wrap:wrap}
+.badge{display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.85rem}
+.badge.off{opacity:.35;filter:grayscale(1)}
+.compass{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.compass svg{width:170px;height:170px;flex:none}
+.compass .dot{fill:#1b2a3b;stroke:#2c4259;transition:.3s}
+.compass .dot.found{fill:var(--green);stroke:#7cf0ac;filter:drop-shadow(0 0 6px var(--green))}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:.82rem;padding:4px 10px;border-radius:999px;background:#0b121a;border:1px solid var(--line);color:var(--muted)}
+.chip.found{color:var(--green);border-color:#1b6a40}
+/* الألغاز */
+.puzzle{padding:22px}
+.puzzle-head{margin-bottom:12px}
+.timerbar{height:6px;background:#0b121a;border-radius:99px;overflow:hidden;margin:6px 0 14px}
+.timerbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--green),var(--gold),var(--red));transition:width 1s linear}
+.stones{display:flex;gap:clamp(8px,2vw,16px);justify-content:center;flex-wrap:wrap;margin:14px 0;direction:ltr}
+.stone{width:clamp(64px,17vw,92px);height:clamp(84px,22vw,118px);border-radius:14px;background:#0c141d;border:2px solid #2a3f55;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:8px 0;font-family:var(--mono);transition:.18s}
+.stone .pv{font-size:.8rem;color:var(--muted)}
+.stone .bv{font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800;color:#3a5068}
+button.stone:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.stone.on{background:linear-gradient(180deg,#3a2f0b,#1b1604);border-color:var(--gold);box-shadow:0 0 22px #ffd16655}
+.stone.on .bv{color:var(--gold);text-shadow:0 0 12px var(--gold)}
+.stone.hintpulse{animation:pulse .8s ease 4}
+@keyframes pulse{50%{box-shadow:0 0 0 6px #4cc9f055;border-color:var(--cyan)}}
+.fort-row{display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap}
+.tower svg{width:130px;height:170px}
+.tower .win{fill:#1b2a3b;transition:.25s}
+.tower .win.lit{fill:var(--gold);filter:drop-shadow(0 0 7px var(--gold))}
+.big{font-family:var(--mono);font-size:clamp(2.6rem,10vw,4.6rem);font-weight:800;color:var(--gold);text-align:center;text-shadow:0 0 24px #ffd16655;margin:4px 0}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;max-width:520px;margin:12px auto}
+.choice{font-family:var(--mono);font-size:1.6rem;font-weight:800;padding:16px;border-radius:14px;background:#0c141d;border:2px solid #2a3f55}
+.choice:hover:not(:disabled){border-color:var(--cyan)}
+.choice:disabled{opacity:.25}
+.sum{text-align:center;color:var(--muted)}
+.sum b{color:var(--cyan);font-size:1.3rem;font-family:var(--mono)}
+/* آسكي */
+.weights{display:flex;gap:4px;justify-content:center;font-family:var(--mono);font-size:.7rem;color:var(--muted);margin:6px 0 14px;flex-wrap:wrap;direction:ltr}
+.weights span{width:34px;text-align:center;border-bottom:1px dashed var(--line)}
+.bytes{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;direction:ltr}
+.byte{display:flex;flex-direction:column;align-items:center;gap:8px;background:#0b121a;border:1px solid var(--line);border-radius:12px;padding:10px}
+.byte .bits{font-family:var(--mono);font-size:1.15rem;letter-spacing:.14em;font-weight:700}
+.byte .bits em{font-style:normal;color:var(--green);text-shadow:0 0 8px #1ea65a88}
+.byte .bits u{text-decoration:none;color:#40566c}
+.byte input{width:48px;height:52px;text-align:center;font:800 1.5rem var(--mono);text-transform:uppercase;background:#06090d;color:var(--text);border:2px solid #2a3f55;border-radius:10px;outline:none;direction:ltr}
+.byte input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #4cc9f033}
+.byte input.ok{border-color:var(--green);color:var(--green)}
+.byte input.no{border-color:var(--bad);color:var(--bad);animation:shake .4s}
+.byte .dec{font-family:var(--mono);font-size:.7rem;color:var(--muted);min-height:1em}
+details.sheet{margin-top:16px;background:#0b121a;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+details.sheet summary{cursor:pointer;color:var(--cyan);font-weight:700}
+.sheet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px 12px;margin-top:10px;font-family:var(--mono);font-size:.8rem;color:var(--muted);direction:ltr}
+.sheet-grid b{color:var(--text)}
+/* هامينغ */
+.packet{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.cw{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#0b121a;border:1px solid var(--line);border-radius:12px;padding:10px}
+.cw.good{border-color:var(--green)} .cw.bad{border-color:var(--bad);animation:shake .4s}
+.cw .lbl{font-size:.8rem;color:var(--muted);min-width:64px}
+.cells{display:flex;gap:6px;direction:ltr}
+.cell{display:flex;flex-direction:column;align-items:center;gap:3px}
+.cell small{font-size:.72rem;color:var(--muted)}
+.cell small.p{color:var(--cyan)} .cell small.d{color:var(--gold)}
+.cell button{width:clamp(34px,9vw,46px);height:clamp(40px,10vw,52px);border-radius:9px;background:#06090d;border:2px solid #2a3f55;font:800 1.3rem var(--mono);color:#6d8399}
+.cell button.one{color:var(--green);border-color:#1b6a40;background:#07140d;text-shadow:0 0 10px #1ea65a88}
+.cell button:hover{border-color:var(--cyan)}
+.diag{font-size:.82rem;color:var(--cyan)}
+.nibs{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:10px 0;direction:ltr}
+.nib{font-family:var(--mono);font-size:1.3rem;font-weight:800;color:var(--gold);background:#1b1604;border:1px solid #6b5614;border-radius:10px;padding:8px 12px;letter-spacing:.12em}
+.answer{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.answer input{font:800 1.6rem var(--mono);letter-spacing:.3em;text-align:center;width:min(240px,70vw);background:#06090d;color:var(--text);border:2px solid #2a3f55;border-radius:12px;padding:10px;outline:none;direction:ltr}
+.answer input:focus{border-color:var(--gold)}
+/* النوافذ */
+.modal{position:fixed;inset:0;background:#000a;backdrop-filter:blur(4px);z-index:40;display:grid;place-items:center;padding:16px;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.modal .card{max-width:520px;width:100%;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.modal.win .card{border-color:var(--green);box-shadow:0 0 40px #1ea65a33}
+.modal.lose .card{border-color:var(--bad);box-shadow:0 0 40px #ff5d6c33}
+.pts{font:800 2rem var(--mono);color:var(--gold)}
+.codebox{font:800 1.5rem var(--mono);letter-spacing:.12em;background:#06090d;border:2px dashed var(--gold);color:var(--gold);padding:12px;text-align:center;border-radius:12px;margin:10px 0;direction:ltr}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+#toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:#101a26;border:1px solid var(--gold);color:var(--text);padding:10px 16px;border-radius:12px;box-shadow:0 8px 30px #000a;animation:fadeUp .3s both;max-width:90vw}
+.toast.err{border-color:var(--bad)}
+footer{margin-top:30px;color:var(--muted);font-size:.82rem;text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="app">
+  <header class="top">
+    <button class="brand" id="homeBtn" aria-label="العودة إلى القائمة الرئيسية">
+      <!-- الشعار: علم سلطنة عُمان (SVG مضمّن، النسبة 2:1). لاستخدام صورتك الخاصة استبدل وسم svg بالوسم: <img src="logo.png" alt="علم عُمان"> -->
+      <span class="flag" role="img" aria-label="علم سلطنة عُمان">
+        <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <rect width="60" height="30" fill="#db161b"/>
+          <rect x="15" width="45" height="10" fill="#ffffff"/>
+          <rect x="15" y="20" width="45" height="10" fill="#008000"/>
+          <g stroke="#fff" fill="none" stroke-linecap="round">
+            <path d="M3 14.5 L12 3.5" stroke-width="1.1"/>
+            <path d="M12 14.5 L3 3.5" stroke-width="1.1"/>
+            <path d="M2.6 12.6 L4.8 14.4 M12.4 12.6 L10.2 14.4" stroke-width=".8"/>
+          </g>
+          <g fill="#fff">
+            <path d="M7.5 2.6c-.9 0-1.4.7-1.4 1.3 0 .5.3.9.7 1.1l-.5 1.4h2.4l-.5-1.4c.4-.2.7-.6.7-1.1 0-.6-.5-1.3-1.4-1.3z"/>
+            <path d="M6.2 7.1h2.6c0 3.4-.5 5.6-1.3 6.9-.8-1.3-1.3-3.5-1.3-6.9z"/>
+            <rect x="3.4" y="8.6" width="8.2" height="1.1" rx=".3"/>
+            <rect x="3" y="11.4" width="9" height=".9" rx=".3"/>
+          </g>
+        </svg>
+      </span>
+      <span><b id="brandTitle"></b><small>01001111 01001101 01000001 01001110</small></span>
+    </button>
+    <div class="hud" id="hud"></div>
+    <div class="tools"><button id="soundBtn" aria-label="تشغيل الصوت أو إيقافه">🔊</button></div>
+  </header>
+  <main id="screen" aria-live="polite"></main>
+  <footer id="footer"></footer>
+</div>
+<div id="toasts" aria-live="assertive"></div>
+
+<script>
+/* =========================================================================
+   تحدّي عُمان الثنائي — لعبة في ملف واحد
+   -------------------------------------------------------------------------
+   تنظيم الملف (كل ما ستحتاج إلى تعديله موجود في الأقسام من 1 إلى 6):
+     1. GAME_CONFIG   : إعدادات عامة (العنوان، قفل المستويات، النجوم، التخزين)
+     2. SCORING       : قواعد احتساب النقاط الافتراضية (يمكن لكل مستوى تجاوزها)
+     3. REWARDS       : الأوسمة والإنجازات مع دالة لكل شرط
+     4. GOVERNORATES  : بيانات المستوى الثاني (الكلمة المراد فكّها والمعلومات)
+     5. HISTORY_CODES : بيانات المستوى الثالث (تواريخ وإحداثيات)
+     6. LEVELS        : قائمة المستويات. أضف أو احذف أو أعد الترتيب بحرية.
+     من 7 فما بعد: المحرّك وأنواع الألغاز (HANDLERS) والواجهة. لا تعدّلها إلا إذا
+        أردت ابتكار نوع لغز جديد (راجع "إضافة نوع مستوى جديد").
+   نصيحة: افتح اللعبة بإضافة ?admin=1 إلى الرابط لفتح كل المستويات وإظهار زر
+   "إعادة ضبط التقدّم" (اسم المعامل موجود في GAME_CONFIG).
+   ========================================================================= */
+
+/* ---------- 1. الإعدادات العامة ---------- */
+const GAME_CONFIG = {
+  title: 'تحدّي عُمان الثنائي',
+  subtitle: 'فكّ الشيفرة، واكتشف السلطنة.',
+  footer: 'صُنعت بالأصفار والواحدات · سلطنة عُمان',
+  storageKey: 'omanBinaryQuest.ar.v1',  // غيّره ليبدأ كل زائر بتقدّم جديد
+  sequentialUnlock: false,              // true = لا يُفتح المستوى التالي قبل إكمال السابق
+  adminQueryParam: 'admin',             // افتح الصفحة بالرابط  page.html?admin=1  لوضع المشرف
+  soundDefault: true,
+  binaryRainBackground: true,
+  // عدد النجوم بعد إنهاء المستوى. تستقبل عدد الإجابات الخاطئة.
+  stars: (wrong) => (wrong === 0 ? 3 : wrong <= 2 ? 2 : 1),
+};
+
+/* ---------- 2. النقاط (افتراضية؛ يمكن لأي مستوى تجاوزها عبر level.scoring) ---------- */
+const SCORING = {
+  streakStep: 10,        // نقاط إضافية لكل إجابة صحيحة متتالية…
+  streakCap: 5,          // …حتى هذا العدد من الخطوات
+  hintPenalty: 25,       // نقاط تُخصم عن كل تلميح في الجولة
+  timeBonusPerSec: 2,    // لكل ثانية متبقية (للمستويات ذات المؤقّت فقط)
+  wrongPenalty: 0,       // نقاط تُخصم من المجموع عند الإجابة الخاطئة
+  minPoints: 10,         // أقل نقاط ممكنة لجولة محلولة
+};
+
+/* ---------- 3. الأوسمة ----------
+   لكل وسام:  { id, icon, title, message, when(state, event) }
+   state = حالة اللعبة الحالية {score, streak, bestStreak, wrong, correct, level, hintsTotal, ...}
+   event = { type: 'roundSolved' | 'levelComplete', level }
+   أعِد true لمنح الوسام. يُمنح الوسام مرة واحدة ويُحفظ في localStorage. */
+const REWARDS = [
+  { id: 'first-solve',  icon: '🌱', title: 'البت الأول',      message: 'أنهيت أول لغز بنجاح!',
+    when: (s, e) => e.type === 'roundSolved' },
+  { id: 'streak-5',     icon: '🔥', title: 'سلسلة مشتعلة',    message: 'خمس إجابات صحيحة متتالية!',
+    when: (s)    => s.streak >= 5 },
+  { id: 'nizwa-done',   icon: '🏰', title: 'حارس نزوى',       message: 'فُتحت بوابة قلعة نزوى!',
+    when: (s, e) => e.type === 'levelComplete' && e.level.id === 'nizwa' },
+  { id: 'compass-done', icon: '🧭', title: 'الملّاح',          message: 'فككت شيفرة بوصلة المحافظات!',
+    when: (s, e) => e.type === 'levelComplete' && e.level.id === 'compass' },
+  { id: 'firewall-done',icon: '🛡️', title: 'حارس الجدار',     message: 'جدار الحماية الوطني بات آمنًا!',
+    when: (s, e) => e.type === 'levelComplete' && e.level.id === 'firewall' },
+  { id: 'perfect',      icon: '💎', title: 'بلا أخطاء',       message: 'أنهيت مستوى كاملًا دون أي خطأ!',
+    when: (s, e) => e.type === 'levelComplete' && s.wrong === 0 },
+  { id: 'no-hints',     icon: '🧠', title: 'منطق خالص',       message: 'أنهيت مستوى دون أي تلميح!',
+    when: (s, e) => e.type === 'levelComplete' && s.hintsTotal === 0 },
+  { id: 'score-1000',   icon: '🏆', title: 'بطل الألف',       message: 'حققت 1000 نقطة أو أكثر في مستوى واحد!',
+    when: (s)    => s.score >= 1000 },
+];
+
+/* ---------- 4. المحافظات (بيانات المستوى الثاني) ----------
+   key      : الكلمة بالأحرف الإنجليزية الكبيرة A–Z التي تُعرض بترميز آسكي (هنا: عاصمة المحافظة)
+   capital  : اسم العاصمة بالعربية      name: اسم المحافظة بالعربية
+   fact     : معلومة قصيرة تظهر بعد الحل
+   لإضافة محافظة: انسخ سطرًا وغيّر الحقول، ولا حاجة إلى تعديل أي كود آخر. */
+const GOVERNORATES = [
+  { key: 'MUSCAT',  capital: 'مسقط',    name: 'مسقط',          fact: 'عاصمة سلطنة عُمان، وفيها جامع السلطان قابوس الأكبر وسوق مطرح.' },
+  { key: 'SALALAH', capital: 'صلالة',   name: 'ظفار',          fact: 'أرض اللبان. وفي موسم الخريف تكتسي جبالها باللون الأخضر كل صيف.' },
+  { key: 'KHASAB',  capital: 'خصب',     name: 'مسندم',         fact: 'شبه جزيرة وعرة على مضيق هرمز، تشتهر بخلجانها العميقة التي تشبه الفيوردات وتُسمّى الخيران.' },
+  { key: 'BURAIMI', capital: 'البريمي', name: 'البريمي',       fact: 'محافظة في شمال السلطنة تجاور مدينة العين الإماراتية.' },
+  { key: 'NIZWA',   capital: 'نزوى',    name: 'الداخلية',      fact: 'عاصمتها نزوى التي كانت يومًا عاصمة لعُمان، وتشتهر بقلعتها الدائرية الكبيرة.' },
+  { key: 'SOHAR',   capital: 'صحار',    name: 'شمال الباطنة',  fact: 'صحار ميناء تاريخي عريق، وتربطه الروايات الشعبية بالبحّار الأسطوري السندباد.' },
+  { key: 'RUSTAQ',  capital: 'الرستاق', name: 'جنوب الباطنة',  fact: 'تشتهر الرستاق بقلعتها الضخمة وبعيونها الحارّة الطبيعية.' },
+  { key: 'IBRA',    capital: 'إبراء',   name: 'شمال الشرقية',  fact: 'تحتضن إبراء سوق الأربعاء العريق الذي تديره النساء منذ قرون.' },
+  { key: 'SUR',     capital: 'صور',     name: 'جنوب الشرقية',  fact: 'تشتهر صور ببناء السفن الشراعية التقليدية، وتقع قرب محمية رأس الجنز لسلاحف البحر.' },
+  { key: 'IBRI',    capital: 'عبري',    name: 'الظاهرة',       fact: 'تضم مواقع بات والخطم والعين الأثرية المدرجة في قائمة التراث العالمي لليونسكو.' },
+  { key: 'HAIMA',   capital: 'هيما',    name: 'الوسطى',        fact: 'هيما هي عاصمتها، وفي الولاية محمية المها العربي.' },
+];
+
+/* ---------- 5. رموز التاريخ (بيانات المستوى الثالث) ----------
+   code     : أرقام (0-9) أو أرقام سداسية عشرية (A-F)، ويصلح أي طول من 1 إلى 8
+   question : ما يجب أن يكتبه اللاعب بعد إصلاح الحزمة وفكّ شيفرتها
+   clue     : لغز قصير يظهر في أعلى الشاشة
+   fact     : معلومة تظهر بعد الحل
+   (الإحداثيات تقريبية بالدرجات العشرية × 100، فمثلًا 23.59 شمالًا تصبح 2359.) */
+const HISTORY_CODES = [
+  { code: '1970', question: 'السنة التي بدأت فيها النهضة العُمانية الحديثة.',
+    clue: 'فجر جديد أشرق على عُمان.', fact: 'في عام 1970 بدأت عُمان نهضتها الحديثة، فانطلق بناء المدارس والمستشفيات والطرق.' },
+  { code: '1811', question: 'اليوم الوطني (18 نوفمبر) مكتوبًا بصيغة اليوم ثم الشهر.',
+    clue: 'في الثامن عشر من الشهر الحادي عشر من كل عام تحتفل البلاد.', fact: 'تحتفل سلطنة عُمان بيومها الوطني في 18 نوفمبر من كل عام.' },
+  { code: '1650', question: 'السنة التي استعاد فيها العُمانيون مسقط من البرتغاليين.',
+    clue: 'ساد الصمت أسوار الميناء في منتصف القرن السابع عشر.', fact: 'في عام 1650 طرد الإمام سلطان بن سيف اليعربي البرتغاليين من مسقط.' },
+  { code: '1744', question: 'السنة التقريبية لتأسيس دولة البوسعيد.',
+    clue: 'تولّت أسرة حاكمة جديدة الحكم في القرن الثامن عشر.', fact: 'أسّس الإمام أحمد بن سعيد البوسعيدي الدولة التي ما زالت أسرتها تحكم عُمان حتى اليوم.' },
+  { code: '1996', question: 'السنة التي صدر فيها النظام الأساسي للدولة.',
+    clue: 'أُعلنت وثيقة تأسيسية في تسعينيات القرن العشرين.', fact: 'صدر النظام الأساسي للدولة بمرسوم سلطاني في نوفمبر 1996.' },
+  { code: '2020', question: 'السنة التي تولّى فيها السلطان هيثم بن طارق الحكم.',
+    clue: 'بدأ عهد جديد مع انتهاء عقد وبداية آخر.', fact: 'تولّى السلطان هيثم بن طارق مقاليد الحكم في عُمان في يناير 2020.' },
+  { code: '2359', question: 'خط عرض مسقط مضروبًا في 100 (تقريبًا 23.59 درجة شمالًا).',
+    clue: 'اقرأ الإحداثي الشمالي للعاصمة على الخريطة.', fact: 'تقع مسقط تقريبًا عند 23.59 درجة شمالًا و58.41 درجة شرقًا على خليج عُمان.' },
+  { code: '5841', question: 'خط طول مسقط مضروبًا في 100 (تقريبًا 58.41 درجة شرقًا).',
+    clue: 'والآن اقرأ الإحداثي الشرقي للعاصمة.', fact: 'تقع مسقط تقريبًا عند 23.59 درجة شمالًا و58.41 درجة شرقًا على خليج عُمان.' },
+  { code: '2293', question: 'خط عرض نزوى مضروبًا في 100 (تقريبًا 22.93 درجة شمالًا).',
+    clue: 'عاصمة الداخلية القديمة تقع جنوب مسقط قليلًا.', fact: 'تقع نزوى تقريبًا عند 22.93 درجة شمالًا و57.53 درجة شرقًا عند سفوح جبال الحجر.' },
+];
+
+/* ---------- 6. المستويات ----------
+   حقول مشتركة بين كل الأنواع:
+     id, type, name, icon, accent (لون CSS), difficulty, audience, intro (نص HTML)
+     rounds        : عدد الألغاز في المستوى
+     lives         : عدد الأخطاء المسموح بها، أو null = بلا حدّ (مناسب للأطفال)
+     points        : النقاط الأساسية لكل جولة محلولة
+     timePerRound  : ثواني كل جولة، أو 0 = بلا مؤقّت
+     scoring       : (اختياري) تجاوز لقيم SCORING مثل { hintPenalty: 5 }
+     reward        : { minAccuracy: 0–1, code: 'نص', text: 'رسالة' } — يظهر في شاشة النتيجة
+                     عندما تكون الدقة كافية. أعطِ الرمز للاعب ليستلم جائزة من المنظّمين مثلًا.
+     params        : خيارات خاصة بكل نوع (انظر كل مستوى أدناه)
+   أنواع المستويات المتاحة: 'nibbleMatch' و'asciiDecode' و'hammingFix'.
+   لإضافة مستوى: انسخ كتلة، وأعطه id فريدًا، وعدّل القيم. الترتيب هنا = ترتيب القائمة. */
+const LEVELS = [
+  {
+    id: 'nizwa', type: 'nibbleMatch',
+    name: 'قلعة نزوى', icon: '🏰', accent: '#ffd166',
+    difficulty: 'سهل جدًا', audience: 'الأطفال والزوّار',
+    intro: 'لبوابة قلعة نزوى العظيمة أربعة <b>أحجار سحرية</b>، وقيمة كل حجر عدد: <b>8 و4 و2 و1</b>. الحجر المضيء يعني <b>1</b>، والحجر المعتم يعني <b>0</b>. اجمع قيم الأحجار المضيئة لتحصل على أي عدد من 0 إلى 15! تُقرأ الأحجار من اليسار إلى اليمين، من الأكبر قيمةً إلى الأصغر.',
+    rounds: 6, lives: null, points: 100, timePerRound: 0,
+    scoring: { hintPenalty: 10, streakStep: 5 },
+    reward: { minAccuracy: 0.6, code: 'NIZWA-1650', text: 'فتحت البوابة! أظهر هذا الرمز لتستلم مكافأتك.' },
+    params: {
+      bits: 4,                          // عدد الأحجار (4 = القيم من 0 إلى 15)
+      modes: ['toBinary', 'toDecimal'], // toBinary = اضبط الأحجار لتطابق عددًا؛ toDecimal = اقرأ الأحجار
+      min: 0,
+      easyRounds: 2, easyMax: 7,        // أول N جولات تستخدم قيمًا لا تتجاوز easyMax
+      showLiveSum: true,                // إظهار المجموع الحالي أثناء ضبط الأحجار
+    },
+    facts: [   // تظهر بالتناوب بعد كل جولة محلولة
+      'بُني برج قلعة نزوى الدائري الضخم في القرن السابع عشر، وهو يهيمن على المدينة القديمة.',
+      'كانت نزوى عاصمة لعُمان في عصور سابقة، ومركزًا مهمًا للعلم والعلماء.',
+      'يُقام بجوار القلعة سوق شهير للماشية صباح كل جمعة.',
+      'احتوت ممرات القلعة على فخاخ دفاعية ذكية، وتقول الحكاية إن دبس التمر الساخن كان يُسكب على المهاجمين!',
+      'تُعدّ قناة فلج دارس القريبة جزءًا من الأفلاج العُمانية المدرجة في قائمة التراث العالمي لليونسكو.',
+      'يشتهر سوق نزوى بالخناجر الفضية، والخنجر العُماني رمز وطني يظهر على علم السلطنة وشعارها.',
+    ],
+  },
+  {
+    id: 'compass', type: 'asciiDecode',
+    name: 'بوصلة المحافظات', icon: '🧭', accent: '#4cc9f0',
+    difficulty: 'متوسط', audience: 'الطلاب',
+    intro: 'تخزّن الحواسيب الحروف على شكل رموز <b>آسكي (ASCII)</b> من 8 بتات. كل حرف إنجليزي كبير يبدأ بـ <b>010</b>، وتحدّد البتات الخمس الأخيرة ترتيبه في الأبجدية الإنجليزية (A = 00001، وB = 00010 ...). فُكّ شيفرة كل إشارة لتكشف <b>عاصمة المحافظة</b> مكتوبةً بالأحرف الإنجليزية الكبيرة، وأضئ البوصلة!',
+    rounds: 6, lives: 5, points: 200, timePerRound: 0,
+    reward: { minAccuracy: 0.7, code: 'COMPASS-11', text: 'أحسنت! فككت كل الشيفرات. أظهر هذا الرمز لتستلم مكافأتك.' },
+    params: {
+      data: GOVERNORATES,        // يمكنك وضع أي مصفوفة من { key, capital, name, fact }
+      maxLen: 7,                 // تجاهل الكلمات الأطول من هذا العدد
+      showBitWeights: true,      // إظهار صف الأوزان 128 64 32 … 1
+      cheatSheetCost: 40,        // نقاط تُخصم عند أول فتح لجدول A–Z في الجولة (0 = مجاني)
+      hintRevealsLetter: true,   // زر التلميح يكشف حرفًا واحدًا
+    },
+  },
+  {
+    id: 'firewall', type: 'hammingFix',
+    name: 'جدار الحماية الوطني', icon: '🛡️', accent: '#e0232b',
+    difficulty: 'صعب', audience: 'عشّاق التقنية',
+    intro: 'اخترق مخترقٌ حزمة البيانات الوطنية وقلب بعض البتات! كل رقم من 4 بتات محميّ بشيفرة <b>هامينغ (7,4)</b> لتصحيح الأخطاء: سبع بتات، المواضع <b>1 و2 و4</b> منها بتات تكافؤ (ت)، والمواضع <b>3 و5 و6 و7</b> بتات بيانات (ب). ابحث عن البت التالف الوحيد في كل كلمة (وبعض الكلمات سليمة!)، وانقر عليه لإصلاحه، ثم اقرأ بتات البيانات أرقامًا لتُدخل رمز الوصول.<br><br><b>قواعد التكافؤ (زوجي):</b> يجب أن يكون عدد الوحدات في كل مجموعة زوجيًا. ت1 يفحص المواضع 1 و3 و5 و7، وت2 يفحص 2 و3 و6 و7، وت4 يفحص 4 و5 و6 و7. اجمع أرقام الفحوص الفاشلة لتعرف موضع الخطأ.',
+    rounds: 3, lives: 3, points: 400, timePerRound: 150,
+    scoring: { hintPenalty: 60, timeBonusPerSec: 2 },
+    reward: { minAccuracy: 0.8, code: 'FIREWALL-7-4', text: 'جدار الحماية بات آمنًا! أظهر هذا الرمز لتستلم مكافأتك.' },
+    params: {
+      challenges: HISTORY_CODES,   // يمكنك وضع أي مصفوفة من { code, question, clue, fact }
+      cleanWordChance: 0.25,       // احتمال أن تكون الكلمة سليمة (تبقى كلمة تالفة واحدة على الأقل دائمًا)
+      showParityLabels: true,      // وسم الخانات ت1 ت2 ب1 ت4 ب2 ب3 ب4
+      freeDiagnostics: 0,          // عدد مرات الفحص المجانية في كل جولة
+      diagnosticCost: 60,          // تكلفة كل مرة فحص إضافية (تُظهر الفحوص الفاشلة)
+      showRowFeedback: true,       // تلوين الصفوف بالأخضر أو الأحمر بعد التحقق الخاطئ
+    },
+  },
+];
+
+/* =========================================================================
+   7. أدوات مساعدة
+   ========================================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+const toBin = (n, bits) => n.toString(2).padStart(bits, '0');
+const charToByte = (c) => toBin(c.charCodeAt(0), 8);
+const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = rand(0, i); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ltr = (s) => `<span class="ltr">${s}</span>`;
+
+/* هامينغ (7,4): المواضع 1..7 = [ت1, ت2, ب1, ت4, ب2, ب3, ب4]  (فهرس المصفوفة 0..6) */
+function hammingEncode(nib) {
+  const d = [(nib >> 3) & 1, (nib >> 2) & 1, (nib >> 1) & 1, nib & 1];
+  const p1 = d[0] ^ d[1] ^ d[3], p2 = d[0] ^ d[2] ^ d[3], p4 = d[1] ^ d[2] ^ d[3];
+  return [p1, p2, d[0], p4, d[1], d[2], d[3]];
+}
+function hammingChecks(w) {   // يعيد [فشل ت1, فشل ت2, فشل ت4] بالقيم 0/1
+  return [w[0] ^ w[2] ^ w[4] ^ w[6], w[1] ^ w[2] ^ w[5] ^ w[6], w[3] ^ w[4] ^ w[5] ^ w[6]];
+}
+const hammingSyndrome = (w) => { const c = hammingChecks(w); return c[0] + 2 * c[1] + 4 * c[2]; }; // 0 = سليمة، وإلا فهو موضع الخطأ
+const hammingData = (w) => (w[2] << 3) | (w[4] << 2) | (w[5] << 1) | w[6];
+
+/* ---------- الصوت (مولّد WebAudio صغير بلا ملفات) ---------- */
+const SFX = {
+  ctx: null, on: GAME_CONFIG.soundDefault,
+  tone(freq, dur = 0.12, type = 'sine', vol = 0.06, delay = 0) {
+    if (!this.on) return;
+    try {
+      this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = this.ctx.currentTime + delay, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + dur);
+    } catch (e) { /* الصوت غير متاح */ }
+  },
+  click() { this.tone(520, 0.05, 'triangle', 0.04); },
+  ok()    { this.tone(660, 0.12, 'sine'); this.tone(880, 0.16, 'sine', 0.06, 0.1); },
+  bad()   { this.tone(180, 0.22, 'sawtooth', 0.05); },
+  win()   { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.06, i * 0.12)); },
+};
+
+/* ---------- الملف الشخصي المحفوظ (localStorage داخل try/catch) ---------- */
+const Profile = {
+  data: { best: {}, completed: {}, badges: {}, discovered: {} },
+  load() { try { const raw = localStorage.getItem(GAME_CONFIG.storageKey); if (raw) this.data = Object.assign(this.data, JSON.parse(raw)); } catch (e) {} },
+  save() { try { localStorage.setItem(GAME_CONFIG.storageKey, JSON.stringify(this.data)); } catch (e) {} },
+  reset() { this.data = { best: {}, completed: {}, badges: {}, discovered: {} }; this.save(); },
+};
+const IS_ADMIN = new URLSearchParams(location.search).get(GAME_CONFIG.adminQueryParam) === '1';
+
+/* ---------- المؤثرات البصرية ---------- */
+function toast(msg, err) {
+  const t = h(`<div class="toast ${err ? 'err' : ''}">${msg}</div>`);
+  $('#toasts').appendChild(t); setTimeout(() => t.remove(), 3200);
+}
+const FX = {
+  c: null, ctx: null, parts: [], running: false,
+  confetti() {
+    this.c = this.c || $('#fx'); this.ctx = this.ctx || this.c.getContext('2d');
+    this.c.width = innerWidth; this.c.height = innerHeight;
+    const cols = ['#e0232b', '#ffffff', '#1ea65a', '#ffd166'];
+    for (let i = 0; i < 140; i++) this.parts.push({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - .5) * 16, vy: Math.random() * -14 - 3, s: rand(5, 10), c: cols[rand(0, 3)], r: Math.random() * 6, life: 140 });
+    if (!this.running) { this.running = true; requestAnimationFrame(() => this.step()); }
+  },
+  step() {
+    const g = this.ctx; g.clearRect(0, 0, this.c.width, this.c.height);
+    this.parts = this.parts.filter((p) => p.life-- > 0);
+    this.parts.forEach((p) => { p.x += p.vx; p.y += p.vy; p.vy += 0.35; p.r += 0.2; g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.globalAlpha = Math.min(1, p.life / 40); g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); g.restore(); });
+    if (this.parts.length) requestAnimationFrame(() => this.step()); else { this.running = false; g.clearRect(0, 0, this.c.width, this.c.height); }
+  },
+};
+function startRain() {
+  if (!GAME_CONFIG.binaryRainBackground || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = $('#rain'), g = c.getContext('2d'); let cols, drops;
+  const size = 16;
+  const resize = () => { c.width = innerWidth; c.height = innerHeight; cols = Math.ceil(c.width / size); drops = Array.from({ length: cols }, () => rand(-40, 0)); };
+  resize(); addEventListener('resize', resize);
+  setInterval(() => {
+    g.fillStyle = 'rgba(7,11,16,.14)'; g.fillRect(0, 0, c.width, c.height);
+    g.font = size + 'px monospace';
+    drops.forEach((y, i) => {
+      g.fillStyle = Math.random() < 0.04 ? '#ffd166' : '#1ea65a';
+      g.fillText(Math.random() < 0.5 ? '0' : '1', i * size, y * size);
+      drops[i] = y * size > c.height && Math.random() > 0.975 ? 0 : y + 1;
+    });
+  }, 70);
+}
+
+/* =========================================================================
+   8. حالة اللعبة والمحرّك
+   ========================================================================= */
+const State = {
+  level: null, rounds: [], roundIdx: 0, score: 0, streak: 0, bestStreak: 0,
+  correct: 0, wrong: 0, lives: null, hintsTotal: 0, hintsRound: 0, hintCost: 0, timer: null, locked: false,
+};
+const levelScoring = (L) => Object.assign({}, SCORING, L.scoring || {});
+
+function updateHUD() {
+  const hud = $('#hud'); const L = State.level;
+  if (!L) { hud.innerHTML = `<span class="pill">🏅 الأوسمة: <b>${ltr(Object.keys(Profile.data.badges).length + '/' + REWARDS.length)}</b></span>`; return; }
+  const hearts = L.lives == null ? '∞' : '❤'.repeat(Math.max(0, State.lives)) + '🖤'.repeat(Math.max(0, L.lives - State.lives));
+  hud.innerHTML = `
+    <span class="pill">${L.icon} ${esc(L.name)}</span>
+    <span class="pill">الجولة: <b>${ltr(Math.min(State.roundIdx + 1, State.rounds.length) + '/' + State.rounds.length)}</b></span>
+    <span class="pill">النقاط: <b>${State.score}</b></span>
+    <span class="pill">🔥 <b>${State.streak}</b></span>
+    <span class="pill">${hearts}</span>`;
+}
+
+function showMenu() {
+  stopTimer(); State.level = null; updateHUD();
+  const P = Profile.data;
+  const found = Object.keys(P.discovered).length;
+  const screen = $('#screen'); screen.innerHTML = '';
+  screen.appendChild(h(`<section class="hero"><p class="eyebrow">سلطنة عُمان · النسخة الثنائية</p>
+    <h1><span>${esc(GAME_CONFIG.title)}</span></h1><p>${esc(GAME_CONFIG.subtitle)} اختر مهمة وتعلّم كيف تعدّ الحواسيب بخانتين فقط: <b>0</b> و<b>1</b>.</p></section>`));
+
+  const grid = h('<section class="grid"></section>');
+  LEVELS.forEach((L, i) => {
+    const prevDone = i === 0 || P.completed[LEVELS[i - 1].id];
+    const locked = GAME_CONFIG.sequentialUnlock && !prevDone && !IS_ADMIN;
+    const best = P.best[L.id];
+    const b = h(`<button class="card level-card ${locked ? 'locked' : ''}" style="--accent:${L.accent}" ${locked ? 'disabled' : ''}>
+      <span class="icon">${locked ? '🔒' : L.icon}</span>
+      <span class="eyebrow">المستوى ${i + 1}</span>
+      <h2>${esc(L.name)}</h2>
+      <div class="row"><span class="tag">${esc(L.difficulty)}</span><span class="muted" style="font-size:.85rem">${esc(L.audience)}</span></div>
+      <span class="muted" style="font-size:.88rem;margin-top:6px">${P.completed[L.id] ? '✅ مكتمل · ' : ''}${best != null ? 'أفضل نتيجة: <b style="color:var(--gold)">' + best.score + '</b> <span class="stars">' + '★'.repeat(best.stars) + '☆'.repeat(3 - best.stars) + '</span>' : 'لم تُلعب بعد'}</span>
+    </button>`);
+    if (!locked) b.onclick = () => { SFX.click(); startLevel(L.id); };
+    grid.appendChild(b);
+  });
+  screen.appendChild(grid);
+
+  // بوصلة المحافظات المكتشفة
+  const comp = h(`<section class="card compass"><div></div><div style="flex:1;min-width:240px">
+      <p class="eyebrow">سجلّ الاكتشافات</p><h2>المحافظات المكتشفة: ${found} من ${GOVERNORATES.length}</h2>
+      <div class="chips">${GOVERNORATES.map((g) => `<span class="chip ${P.discovered[g.key] ? 'found' : ''}">${P.discovered[g.key] ? esc(g.name) : '؟؟؟'}</span>`).join('')}</div></div></section>`);
+  const n = GOVERNORATES.length, cx = 85, cy = 85, rad = 62;
+  comp.firstElementChild.innerHTML = `<svg viewBox="0 0 170 170" role="img" aria-label="بوصلة المحافظات"><circle cx="85" cy="85" r="78" fill="none" stroke="#223245"/><circle cx="85" cy="85" r="4" fill="#e0232b"/>
+    <path d="M85 12 L91 85 L85 158 L79 85Z" fill="#ffffff10"/>
+    ${GOVERNORATES.map((g, i) => { const a = (i / n) * 2 * Math.PI - Math.PI / 2; return `<circle class="dot ${P.discovered[g.key] ? 'found' : ''}" cx="${(cx + rad * Math.cos(a)).toFixed(1)}" cy="${(cy + rad * Math.sin(a)).toFixed(1)}" r="8"><title>${esc(P.discovered[g.key] ? g.name : '؟؟؟')}</title></circle>`; }).join('')}
+    <text x="85" y="9" fill="#8aa0b5" font-size="10" text-anchor="middle">ش</text></svg>`;
+  screen.appendChild(comp);
+
+  // الأوسمة
+  screen.appendChild(h(`<section style="margin-top:20px"><p class="eyebrow" style="margin-bottom:8px">الأوسمة</p><div class="shelf">${REWARDS.map((r) =>
+    `<div class="badge ${P.badges[r.id] ? '' : 'off'}" title="${esc(r.message)}"><span style="font-size:1.4rem">${r.icon}</span><span>${esc(r.title)}</span></div>`).join('')}</div></section>`));
+
+  if (IS_ADMIN) {
+    const ad = h('<section class="row" style="margin-top:20px"><span class="tag">وضع المشرف</span><button class="btn small">إعادة ضبط كل التقدّم</button></section>');
+    ad.querySelector('button').onclick = () => { if (confirm('هل تريد حذف كل التقدّم المحفوظ على هذا الجهاز؟')) { Profile.reset(); showMenu(); } };
+    screen.appendChild(ad);
+  }
+}
+
+function startLevel(id) {
+  const L = LEVELS.find((l) => l.id === id);
+  const handler = HANDLERS[L.type];
+  Object.assign(State, { level: L, rounds: handler.buildRounds(L), roundIdx: 0, score: 0, streak: 0, bestStreak: 0, correct: 0, wrong: 0, lives: L.lives, hintsTotal: 0, hintsRound: 0, hintCost: 0, locked: false });
+  updateHUD();
+  const screen = $('#screen'); screen.innerHTML = '';
+  const intro = h(`<section class="card" style="--accent:${L.accent}"><p class="eyebrow">${esc(L.difficulty)} · ${esc(L.audience)}</p>
+    <h1 style="font-size:clamp(1.6rem,4vw,2.4rem)">${L.icon} ${esc(L.name)}</h1>
+    <p style="max-width:70ch;line-height:1.9">${L.intro}</p>
+    <p class="muted" style="font-size:.88rem">عدد الجولات: ${State.rounds.length} · المحاولات: ${L.lives == null ? 'غير محدودة' : L.lives}${L.timePerRound ? ' · الوقت لكل جولة: ' + L.timePerRound + ' ثانية' : ''}</p>
+    <div class="row"><button class="btn primary" id="go">ابدأ المهمة ←</button><button class="btn ghost" id="back">رجوع</button></div></section>`);
+  intro.querySelector('#go').onclick = () => { SFX.click(); runRound(); };
+  intro.querySelector('#back').onclick = showMenu;
+  screen.appendChild(intro);
+}
+
+function stopTimer() { if (State.timer) { clearInterval(State.timer.id); State.timer = null; } }
+
+function runRound() {
+  const L = State.level, handler = HANDLERS[L.type], round = State.rounds[State.roundIdx];
+  State.hintsRound = 0; State.hintCost = 0; State.locked = false; stopTimer(); updateHUD();
+  const screen = $('#screen'); screen.innerHTML = '';
+  const box = h(`<section class="card puzzle" style="--accent:${L.accent}"></section>`);
+  screen.appendChild(box);
+  if (L.timePerRound) {
+    const bar = h('<div class="timerbar"><i></i></div>'); box.appendChild(bar);
+    State.timer = { total: L.timePerRound, left: L.timePerRound, bar: bar.firstElementChild, id: setInterval(() => {
+      if (!State.timer) return;
+      State.timer.left--; State.timer.bar.style.width = Math.max(0, (State.timer.left / State.timer.total) * 100) + '%';
+      if (State.timer.left <= 0) { stopTimer(); timeUp(); }
+    }, 1000) };
+  }
+  const body = h('<div></div>'); box.appendChild(body);
+  const ctx = {
+    box: body, card: box,
+    solve: () => solveRound(),
+    fail: (msg) => failRound(msg, box),
+    hint: (cost) => { const c = cost == null ? levelScoring(L).hintPenalty : cost; State.hintsRound++; State.hintsTotal++; State.hintCost += c; State.score = Math.max(0, State.score - c); updateHUD(); SFX.click(); },
+    penalty: (pts) => { State.hintCost += pts; State.score = Math.max(0, State.score - pts); updateHUD(); },
+    lock: (v) => { State.locked = v; },
+  };
+  handler.render(L, round, ctx);
+}
+
+function solveRound() {
+  if (State.locked) return; State.locked = true;
+  const L = State.level, S = levelScoring(L), round = State.rounds[State.roundIdx];
+  const streakBonus = Math.min(State.streak, S.streakCap) * S.streakStep;
+  const timeBonus = State.timer ? Math.max(0, State.timer.left) * S.timeBonusPerSec : 0;
+  const pts = Math.max(S.minPoints, L.points + streakBonus + timeBonus);
+  stopTimer();
+  State.score += pts; State.streak++; State.bestStreak = Math.max(State.bestStreak, State.streak); State.correct++;
+  SFX.ok(); updateHUD(); checkRewards('roundSolved');
+  showFeedback(true, `+${pts}`, `الأساس: ${L.points}${streakBonus ? ' + ' + streakBonus + ' مكافأة سلسلة' : ''}${timeBonus ? ' + ' + timeBonus + ' مكافأة وقت' : ''}${State.hintCost ? ' · كلّفتك التلميحات والمساعدات ' + State.hintCost + ' نقطة' : ''}`, HANDLERS[L.type].reveal(L, round));
+}
+
+function failRound(msg, box) {
+  if (State.locked) return false;
+  const L = State.level;
+  State.wrong++; State.streak = 0; State.score = Math.max(0, State.score - levelScoring(L).wrongPenalty);
+  SFX.bad(); box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+  if (msg) toast(msg, true);
+  if (State.lives != null) { State.lives--; if (State.lives <= 0) { updateHUD(); gameOver(); return false; } }
+  updateHUD(); return true;
+}
+
+function timeUp() {
+  if (State.locked) return; State.locked = true;
+  const L = State.level; const round = State.rounds[State.roundIdx];
+  State.wrong++; State.streak = 0; SFX.bad();
+  if (State.lives != null) { State.lives--; if (State.lives <= 0) { updateHUD(); gameOver(); return; } }
+  updateHUD();
+  showFeedback(false, 'انتهى الوقت!', 'فاتتك هذه الجولة، وهذه هي الإجابة:', HANDLERS[L.type].reveal(L, round));
+}
+
+function showFeedback(good, big, small, revealHtml) {
+  const last = State.roundIdx >= State.rounds.length - 1;
+  const m = h(`<div class="modal ${good ? 'win' : 'lose'}"><div class="card">
+    <p class="eyebrow">${good ? 'إجابة صحيحة' : 'فاتتك الجولة'}</p><div class="pts" style="${good ? '' : 'color:var(--bad)'}">${big}</div>
+    <p class="muted" style="font-size:.88rem;margin-top:0">${small}</p>
+    <div style="line-height:1.8">${revealHtml || ''}</div>
+    <div class="row" style="margin-top:14px"><button class="btn ${good ? 'good' : 'primary'}" id="next">${last ? 'إنهاء المهمة' : 'الجولة التالية ←'}</button></div></div></div>`);
+  document.body.appendChild(m);
+  const nb = m.querySelector('#next'); nb.focus();
+  nb.onclick = () => { m.remove(); SFX.click(); if (last) finishLevel(); else { State.roundIdx++; runRound(); } };
+}
+
+function checkRewards(type) {
+  const ev = { type, level: State.level };
+  REWARDS.forEach((r) => {
+    if (Profile.data.badges[r.id]) return;
+    let ok = false; try { ok = r.when(State, ev); } catch (e) {}
+    if (ok) { Profile.data.badges[r.id] = true; Profile.save(); toast(`${r.icon} <b>${esc(r.title)}</b> — ${esc(r.message)}`); }
+  });
+}
+
+function gameOver() {
+  stopTimer(); State.locked = true;
+  const L = State.level;
+  const m = h(`<div class="modal lose"><div class="card"><p class="eyebrow">فشلت المهمة</p><h2>نفدت محاولاتك</h2>
+    <p class="muted">حصلت على <b style="color:var(--gold)">${State.score}</b> نقطة قبل أن يُقفل النظام. حتى الخبراء يخطئون أحيانًا، فحاول مجددًا!</p>
+    <div class="row"><button class="btn primary" id="retry">حاول مجددًا</button><button class="btn ghost" id="menu">القائمة الرئيسية</button></div></div></div>`);
+  document.body.appendChild(m);
+  m.querySelector('#retry').onclick = () => { m.remove(); startLevel(L.id); };
+  m.querySelector('#menu').onclick = () => { m.remove(); showMenu(); };
+}
+
+function finishLevel() {
+  stopTimer();
+  const L = State.level, total = State.correct + State.wrong;
+  const accuracy = total ? State.correct / total : 1;
+  const stars = GAME_CONFIG.stars(State.wrong);
+  const prev = Profile.data.best[L.id];
+  if (!prev || State.score > prev.score) Profile.data.best[L.id] = { score: State.score, stars: Math.max(stars, prev ? prev.stars : 0) };
+  Profile.data.completed[L.id] = true; Profile.save();
+  checkRewards('levelComplete'); SFX.win(); FX.confetti();
+  const idx = LEVELS.indexOf(L), nextL = LEVELS[idx + 1];
+  const earned = L.reward && accuracy >= L.reward.minAccuracy;
+  const screen = $('#screen'); screen.innerHTML = '';
+  const res = h(`<section class="card" style="--accent:${L.accent};text-align:center">
+    <p class="eyebrow">اكتملت المهمة</p><h1 style="font-size:clamp(1.6rem,4vw,2.4rem)">${L.icon} ${esc(L.name)}</h1>
+    <div class="stars" style="font-size:2.4rem">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+    <div class="pts">${State.score} نقطة</div>
+    <p class="muted">الدقة: ${(accuracy * 100).toFixed(0)}٪ · أفضل سلسلة: ${State.bestStreak} · التلميحات المستخدمة: ${State.hintsTotal}</p>
+    ${earned ? `<div class="codebox">${esc(L.reward.code)}</div><p>${esc(L.reward.text)}</p>` : (L.reward ? `<p class="muted">للحصول على رمز مكافأة هذا المستوى، حقّق دقة لا تقل عن ${(L.reward.minAccuracy * 100).toFixed(0)}٪.</p>` : '')}
+    <div class="row" style="justify-content:center;margin-top:14px">
+      <button class="btn" id="again">أعد اللعب</button>
+      ${nextL ? '<button class="btn primary" id="nxt">المستوى التالي ←</button>' : ''}
+      <button class="btn ghost" id="menu">القائمة الرئيسية</button></div></section>`);
+  res.querySelector('#again').onclick = () => startLevel(L.id);
+  if (nextL) res.querySelector('#nxt').onclick = () => startLevel(nextL.id);
+  res.querySelector('#menu').onclick = showMenu;
+  screen.appendChild(res); updateHUD();
+}
+
+/* =========================================================================
+   9. معالجات أنواع المستويات
+   -------------------------------------------------------------------------
+   إضافة نوع مستوى جديد: أنشئ HANDLERS.myType = { buildRounds(L), render(L, round, ctx), reveal(L, round) }
+     buildRounds : تعيد مصفوفة كائنات الجولات (بأي شكل تريده)
+     render      : ارسم اللغز داخل ctx.box. استدعِ ctx.solve() عند الإجابة الصحيحة،
+                   و ctx.fail('رسالة') عند الخطأ (تتولى الأرواح والسلسلة والاهتزاز)،
+                   و ctx.hint() عند كل تلميح (تطبّق الخصم تلقائيًا).
+     reveal      : تعيد HTML يظهر في النافذة بعد الجولة (الإجابة + معلومة)
+   ثم أضف مستوى في LEVELS بالخاصية  type: 'myType'.
+   ========================================================================= */
+const HANDLERS = {};
+
+/* ---------- النوع 1: nibbleMatch (قلعة نزوى) ---------- */
+function towerSVG(bits) {
+  const wins = bits.map((b, i) => `<circle class="win ${b ? 'lit' : ''}" cx="60" cy="${58 + i * 24}" r="8"/>`).join('');
+  return `<svg viewBox="0 0 120 170" aria-hidden="true">
+    <path d="M28 40h64v118H28z" fill="#1a2838" stroke="#33506b" stroke-width="2"/>
+    ${[0, 1, 2, 3, 4].map((i) => `<rect x="${28 + i * 14}" y="26" width="10" height="16" fill="#1a2838" stroke="#33506b" stroke-width="2"/>`).join('')}
+    ${wins}<path d="M48 158v-14a12 12 0 0124 0v14z" fill="#0b121a" stroke="#33506b" stroke-width="2"/></svg>`;
+}
+HANDLERS.nibbleMatch = {
+  buildRounds(L) {
+    const P = L.params, max = (1 << P.bits) - 1, used = new Set(), out = [];
+    for (let i = 0; i < L.rounds; i++) {
+      const hi = i < (P.easyRounds || 0) ? Math.min(P.easyMax || 7, max) : max;
+      let v, g = 0; do { v = rand(P.min || 0, hi); } while (used.has(v) && ++g < 60); used.add(v);
+      out.push({ mode: P.modes[i % P.modes.length], value: v, fact: L.facts[i % L.facts.length] });
+    }
+    return out;
+  },
+  render(L, r, ctx) {
+    const P = L.params, n = P.bits, weights = Array.from({ length: n }, (_, i) => 2 ** (n - 1 - i));
+    const target = toBin(r.value, n).split('').map(Number);
+    const box = ctx.box;
+    if (r.mode === 'toBinary') {
+      const cur = Array(n).fill(0);
+      box.innerHTML = `<div class="puzzle-head"><p class="eyebrow">تحدّي البوابة</p><h2>أضئ الأحجار بحيث يكون مجموعها هذا العدد:</h2></div>
+        <div class="big">${r.value}</div>
+        <div class="fort-row"><div class="tower"></div><div style="flex:1;min-width:250px"><div class="stones"></div>${P.showLiveSum ? '<div class="sum">مجموع أحجارك: <b id="sum">0</b></div>' : ''}</div></div>
+        <div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" id="open">افتح البوابة</button><button class="btn ghost small" id="hint">💡 تلميح</button></div>`;
+      const stones = box.querySelector('.stones'), tower = box.querySelector('.tower');
+      const sum = () => cur.reduce((s, b, i) => s + b * weights[i], 0);
+      const redraw = () => {
+        tower.innerHTML = towerSVG(cur);
+        stones.innerHTML = cur.map((b, i) => `<button class="stone ${b ? 'on' : ''}" data-i="${i}" aria-label="حجر قيمته ${weights[i]}، وقيمته الحالية ${b}"><span class="pv">${weights[i]}</span><span class="bv">${b}</span></button>`).join('');
+        stones.querySelectorAll('button').forEach((bt) => bt.onclick = () => { cur[+bt.dataset.i] ^= 1; SFX.click(); redraw(); });
+        const s = box.querySelector('#sum'); if (s) s.textContent = sum();
+      };
+      redraw();
+      box.querySelector('#open').onclick = () => { if (sum() === r.value) { ctx.solve(); } else ctx.fail('ليس تمامًا! اجمع قيم الأحجار المضيئة مرة أخرى.'); };
+      box.querySelector('#hint').onclick = () => {
+        const i = cur.findIndex((b, k) => b !== target[k]); if (i < 0) return;
+        ctx.hint(); stones.children[i].classList.add('hintpulse'); toast(`💡 انظر إلى الحجر الذي قيمته ${weights[i]}.`);
+      };
+    } else {
+      const set = new Set([r.value]); let g = 0; const max = (1 << n) - 1;
+      while (set.size < 4 && g++ < 100) set.add(rand(P.min || 0, max));
+      const opts = shuffle([...set]);
+      box.innerHTML = `<div class="puzzle-head"><p class="eyebrow">تحدّي البوابة</p><h2>اقرأ الأحجار المضيئة. أي عدد تمثّل؟</h2></div>
+        <div class="fort-row"><div class="tower">${towerSVG(target)}</div><div style="flex:1;min-width:250px"><div class="stones">${target.map((b, i) => `<div class="stone ${b ? 'on' : ''}"><span class="pv">${weights[i]}</span><span class="bv">${b}</span></div>`).join('')}</div></div></div>
+        <div class="choices">${opts.map((o) => `<button class="choice" data-v="${o}">${o}</button>`).join('')}</div>
+        <div class="row" style="justify-content:center"><button class="btn ghost small" id="hint">💡 تلميح</button></div>`;
+      box.querySelectorAll('.choice').forEach((bt) => bt.onclick = () => {
+        if (+bt.dataset.v === r.value) ctx.solve(); else { bt.disabled = true; ctx.fail('حاول مرة أخرى، واجمع قيم الأحجار المضيئة.'); }
+      });
+      box.querySelector('#hint').onclick = () => {
+        const wrong = [...box.querySelectorAll('.choice:not(:disabled)')].filter((b) => +b.dataset.v !== r.value);
+        if (!wrong.length) return; ctx.hint(); shuffle(wrong)[0].disabled = true;
+      };
+    }
+  },
+  reveal(L, r) {
+    const n = L.params.bits;
+    return `<p>${ltr('<b>' + toBin(r.value, n) + '</b>')} في النظام الثنائي = <b>${r.value}</b> في النظام العشري.</p><p class="muted">🏰 ${esc(r.fact)}</p>`;
+  },
+};
+
+/* ---------- النوع 2: asciiDecode (بوصلة المحافظات) ---------- */
+HANDLERS.asciiDecode = {
+  buildRounds(L) {
+    const P = L.params;
+    return shuffle(P.data.filter((g) => g.key.length <= (P.maxLen || 99))).slice(0, L.rounds).map((g) => ({ gov: g }));
+  },
+  render(L, r, ctx) {
+    const P = L.params, word = r.gov.key, box = ctx.box; let sheetPaid = false;
+    const bytes = word.split('').map(charToByte);
+    box.innerHTML = `<div class="puzzle-head"><p class="eyebrow">إشارة واردة · عدد الحروف: ${word.length}</p><h2>فُكّ شيفرة بايتات آسكي (8 بتات) لتكتشف عاصمة محافظة</h2>
+      <p class="muted" style="margin:0">اكتب الحروف بالأحرف الإنجليزية الكبيرة، من اليسار إلى اليمين.</p></div>
+      ${P.showBitWeights ? '<div class="weights">' + [128, 64, 32, 16, 8, 4, 2, 1].map((w) => `<span>${w}</span>`).join('') + '</div>' : ''}
+      <div class="bytes">${bytes.map((b, i) => `<div class="byte"><div class="bits">${b.split('').map((x) => (x === '1' ? '<em>1</em>' : '<u>0</u>')).join('')}</div><input maxlength="1" data-i="${i}" autocomplete="off" autocapitalize="characters" aria-label="الحرف ${i + 1}"><div class="dec"></div></div>`).join('')}</div>
+      <div class="row" style="justify-content:center;margin-top:16px"><button class="btn primary" id="check">فُكّ الشيفرة</button>${P.hintRevealsLetter ? '<button class="btn ghost small" id="hint">💡 اكشف حرفًا</button>' : ''}</div>
+      <details class="sheet"><summary>📖 جدول آسكي للحروف A–Z${P.cheatSheetCost ? ' — تكلفته ' + P.cheatSheetCost + ' نقطة' : ''}</summary><div class="sheet-grid">${Array.from({ length: 26 }, (_, i) => { const c = String.fromCharCode(65 + i); return `<span><b>${c}</b> ${charToByte(c)} (${65 + i})</span>`; }).join('')}</div></details>`;
+    const inputs = [...box.querySelectorAll('input')];
+    inputs[0].focus();
+    inputs.forEach((inp, i) => {
+      inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 1); inp.classList.remove('no'); if (inp.value && inputs[i + 1]) inputs[i + 1].focus(); });
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !inp.value && inputs[i - 1]) inputs[i - 1].focus();
+        if (e.key === 'ArrowLeft' && inputs[i - 1]) inputs[i - 1].focus();
+        if (e.key === 'ArrowRight' && inputs[i + 1]) inputs[i + 1].focus();
+        if (e.key === 'Enter') box.querySelector('#check').click();
+      });
+    });
+    box.querySelector('details').addEventListener('toggle', (e) => {
+      if (e.target.open && !sheetPaid && P.cheatSheetCost) { sheetPaid = true; ctx.penalty(P.cheatSheetCost); toast(`📖 تم فتح الجدول (−${P.cheatSheetCost} نقطة)`); }
+    });
+    box.querySelector('#check').onclick = () => {
+      const got = inputs.map((i) => i.value.toUpperCase());
+      if (got.some((x) => !x)) { toast('املأ كل الحروف أولًا.', true); return; }
+      let all = true;
+      inputs.forEach((inp, i) => { const ok = got[i] === word[i]; inp.classList.toggle('ok', ok); inp.classList.toggle('no', !ok); if (!ok) all = false; });
+      if (all) { inputs.forEach((inp, i) => { box.querySelectorAll('.dec')[i].textContent = word.charCodeAt(i); }); Profile.data.discovered[r.gov.key] = true; Profile.save(); ctx.solve(); }
+      else ctx.fail('بعض الحروف خاطئة. راجع الوحدات مع أوزان البتات!');
+    };
+    const hb = box.querySelector('#hint');
+    if (hb) hb.onclick = () => {
+      const i = inputs.findIndex((inp, k) => inp.value.toUpperCase() !== word[k]);
+      if (i < 0) return; ctx.hint(); inputs[i].value = word[i]; inputs[i].classList.add('ok'); inputs[i].classList.remove('no');
+    };
+  },
+  reveal(L, r) {
+    const g = r.gov;
+    return `<p>${ltr('<b>' + esc(g.key) + '</b>')} ← <b style="color:var(--green)">${esc(g.capital)}</b>، عاصمة محافظة <b>${esc(g.name)}</b>.</p><p class="muted">🧭 ${esc(g.fact)}</p>`;
+  },
+};
+
+/* ---------- النوع 3: hammingFix (جدار الحماية الوطني) ---------- */
+HANDLERS.hammingFix = {
+  buildRounds(L) {
+    const P = L.params;
+    return shuffle(P.challenges).slice(0, L.rounds).map((c) => {
+      const digits = c.code.toUpperCase().split(''), sent = digits.map((d) => hammingEncode(parseInt(d, 16)));
+      let recv, tries = 0;
+      do {
+        recv = sent.map((w) => { const x = [...w]; if (Math.random() >= (P.cleanWordChance || 0)) { const k = rand(0, 6); x[k] ^= 1; } return x; });
+      } while (recv.every((w, i) => w.join('') === sent[i].join('')) && ++tries < 50);
+      if (recv.every((w, i) => w.join('') === sent[i].join(''))) recv[0][rand(0, 6)] ^= 1;
+      return { c, digits, sent, recv };
+    });
+  },
+  render(L, r, ctx) {
+    const P = L.params, box = ctx.box, cur = r.recv.map((w) => [...w]); let diagRuns = 0, verified = false;
+    const labels = ['ت1', 'ت2', 'ب1', 'ت4', 'ب2', 'ب3', 'ب4'];
+    box.innerHTML = `<div class="puzzle-head"><p class="eyebrow">طبقة الجدار · حزمة معترَضة</p><h2>${esc(r.c.clue)}</h2>
+      <p class="muted" style="margin:0">أصلح البتات التالفة (انقر على البت لقلبه)، ثم تحقّق من الحزمة.</p></div>
+      <div class="packet"></div>
+      <div class="row" style="justify-content:center"><button class="btn small" id="diag">🔍 تشغيل فحص التكافؤ (−${P.diagnosticCost} نقطة)</button><button class="btn primary" id="verify">تحقّق من الحزمة</button></div>
+      <div id="stage2" style="display:none;margin-top:18px">
+        <p class="eyebrow" style="text-align:center">تم إصلاح الحزمة · بتات البيانات (ب1–ب4) لكل كلمة</p><div class="nibs"></div>
+        <p style="text-align:center;margin:8px 0">${esc(r.c.question)}</p>
+        <div class="answer"><input id="ans" inputmode="text" autocomplete="off" maxlength="${r.digits.length}" placeholder="${'•'.repeat(r.digits.length)}" aria-label="رمز الوصول"><button class="btn good" id="submit">أدخل الرمز</button></div>
+      </div>`;
+    const packet = box.querySelector('.packet');
+    const diagText = (w) => {
+      const c = hammingChecks(w), s = c[0] + 2 * c[1] + 4 * c[2];
+      return `ت1 ${c[0] ? '✗' : '✓'} · ت2 ${c[1] ? '✗' : '✓'} · ت4 ${c[2] ? '✗' : '✓'} ← ${s ? 'خطأ في الموضع ' + s : 'سليمة'}`;
+    };
+    let lastDiag = false;
+    const draw = (rowState, diag) => {
+      packet.innerHTML = cur.map((w, wi) => `<div class="cw ${rowState ? rowState[wi] : ''}"><span class="lbl">الكلمة ${wi + 1}</span><div class="cells">${w.map((b, i) =>
+        `<div class="cell">${P.showParityLabels ? `<small class="${labels[i][0] === 'ت' ? 'p' : 'd'}">${labels[i]}</small>` : `<small>${i + 1}</small>`}<button class="${b ? 'one' : ''}" data-w="${wi}" data-i="${i}" ${verified ? 'disabled' : ''} aria-label="الكلمة ${wi + 1}، الموضع ${i + 1}، القيمة ${b}">${b}</button></div>`).join('')}</div>
+        <span class="diag">${diag ? diagText(w) : ''}</span></div>`).join('');
+      packet.querySelectorAll('button').forEach((bt) => bt.onclick = () => { cur[+bt.dataset.w][+bt.dataset.i] ^= 1; SFX.click(); draw(null, lastDiag); });
+    };
+    draw(null, false);
+    box.querySelector('#diag').onclick = () => {
+      diagRuns++;
+      if (diagRuns > (P.freeDiagnostics || 0)) ctx.hint(P.diagnosticCost);
+      lastDiag = true; draw(null, true);
+    };
+    box.querySelector('#verify').onclick = () => {
+      const state = cur.map((w, i) => (w.join('') === r.sent[i].join('') ? 'good' : 'bad'));
+      if (state.every((s) => s === 'good')) {
+        verified = true; draw(state, lastDiag); SFX.ok();
+        box.querySelector('#stage2').style.display = 'block';
+        box.querySelector('.nibs').innerHTML = cur.map((w) => `<span class="nib">${toBin(hammingData(w), 4)}</span>`).join('');
+        box.querySelector('#verify').disabled = true; box.querySelector('#diag').disabled = true;
+        box.querySelector('#ans').focus();
+      } else {
+        const alive = ctx.fail('الحزمة ما زالت تالفة، فبعض الكلمات خاطئة.');
+        if (alive) draw(P.showRowFeedback ? state : null, lastDiag);
+      }
+    };
+    const submit = () => {
+      const a = box.querySelector('#ans').value.trim().toUpperCase();
+      if (a === r.c.code.toUpperCase()) ctx.solve(); else ctx.fail('تم رفض الدخول. حوّل كل مجموعة من 4 بتات إلى رقم.');
+    };
+    box.querySelector('#submit').onclick = submit;
+    box.querySelector('#ans').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  },
+  reveal(L, r) {
+    return `<p>رمز الوصول: ${ltr('<b style="color:var(--gold);font-family:var(--mono);letter-spacing:.15em">' + esc(r.c.code) + '</b>')}</p>
+      <p class="muted">${r.sent.map((w, i) => `الرقم ${ltr(esc(r.digits[i]))} = ${ltr(toBin(parseInt(r.digits[i], 16), 4))} ← أُرسل على الشكل ${ltr(w.join(''))}`).join('<br>')}</p>
+      <p class="muted">🛡️ ${esc(r.c.fact)}</p>`;
+  },
+};
+
+/* =========================================================================
+   10. التشغيل
+   ========================================================================= */
+Profile.load();
+document.title = GAME_CONFIG.title;
+$('#brandTitle').textContent = GAME_CONFIG.title;
+$('#footer').textContent = GAME_CONFIG.footer + (IS_ADMIN ? ' · وضع المشرف' : '');
+$('#homeBtn').onclick = () => { if (!State.level || confirm('هل تريد مغادرة المهمة؟ سيضيع تقدّمك في هذا المستوى.')) { document.querySelectorAll('.modal').forEach((m) => m.remove()); showMenu(); } };
+$('#soundBtn').onclick = () => { SFX.on = !SFX.on; $('#soundBtn').textContent = SFX.on ? '🔊' : '🔇'; };
+$('#soundBtn').textContent = SFX.on ? '🔊' : '🔇';
+startRain();
+showMenu();
+</script>
+</body>
+</html>
